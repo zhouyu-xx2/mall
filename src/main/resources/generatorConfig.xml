@@ -44,9 +44,15 @@
         <table tableName="mall_pay_info" domainObjectName="PayInfo" enableCountByExample="false"
                enableSelectByExample="false" selectByExampleQueryId="false" enableDeleteByExample="false"
         />-->
-        <table tableName="mall_user" domainObjectName="User" enableCountByExample="false"
+        <table tableName="mall_shipping" domainObjectName="Shipping" enableCountByExample="false"
                enableSelectByExample="false" selectByExampleQueryId="false" enableDeleteByExample="false"
         />
+        <!--<table tableName="mall_product" domainObjectName="Product" enableCountByExample="false"
+               enableSelectByExample="false" selectByExampleQueryId="false" enableDeleteByExample="false"
+        >
+            <columnOverride column="detail" jdbcType="VARCHAR"/>
+            <columnOverride column="sub_images" jdbcType="VARCHAR"/>
+        </table>-->
 
     </context>
 </generatorConfiguration>

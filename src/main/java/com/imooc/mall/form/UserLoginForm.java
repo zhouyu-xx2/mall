@@ -1,4 +1,4 @@
-package com.imooc.mall.userform;
+package com.imooc.mall.form;
 
 import lombok.Data;
 

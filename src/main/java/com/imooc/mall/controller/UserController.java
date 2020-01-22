@@ -1,21 +1,19 @@
 package com.imooc.mall.controller;
 
+import com.imooc.mall.form.UserLoginForm;
+import com.imooc.mall.form.UserRegisterForm;
 import com.imooc.mall.pojo.User;
 import com.imooc.mall.responseVo.ResponseVo;
 import com.imooc.mall.service.IUserService;
-import com.imooc.mall.userform.UserLoginForm;
-import com.imooc.mall.userform.UserRegisterForm;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
 
 import static com.imooc.mall.consts.MallConst.CURRENT_USER;
-import static com.imooc.mall.enums.ResponseEnum.PARAM_ERROR;
 
 @RestController
 @RequestMapping("/user")
@@ -25,14 +23,14 @@ public class UserController {
     private IUserService service;
 
     @PostMapping("/register")
-    public ResponseVo<User> register(@Valid @RequestBody UserRegisterForm userRegisterForm, BindingResult bindingResult) {
+    public ResponseVo<User> register(@Valid @RequestBody UserRegisterForm userRegisterForm) {
 
-        if (bindingResult.hasErrors()) {
+        /*if (bindingResult.hasErrors()) {
             log.error("注册提交的参数有误，{} {}",
                     bindingResult.getFieldError().getField(),
                     bindingResult.getFieldError().getDefaultMessage());
             return ResponseVo.error(PARAM_ERROR, bindingResult);
-        }
+        }*/
         // log.info("username{}=", userForm.getUsername());
         User user = new User();
         BeanUtils.copyProperties(userRegisterForm, user);
@@ -41,14 +39,14 @@ public class UserController {
     }
 
     @PostMapping("/user/login")
-    public ResponseVo<User> login(@Valid @RequestBody UserLoginForm userLoginForm, BindingResult bindingResult,
+    public ResponseVo<User> login(@Valid @RequestBody UserLoginForm userLoginForm,
                                   HttpSession session) {
-        if (bindingResult.hasErrors()) {
+       /* if (bindingResult.hasErrors()) {
             log.error("注册提交的参数有误，{} {}",
                     bindingResult.getFieldError().getField(),
                     bindingResult.getFieldError().getDefaultMessage());
             return ResponseVo.error(PARAM_ERROR, bindingResult);
-        }
+        }*/
         ResponseVo<User> userResponseVo = service.login(userLoginForm.getUsername(), userLoginForm.getPassword());
         session.setAttribute(CURRENT_USER, userResponseVo.getData());
         return userResponseVo;
