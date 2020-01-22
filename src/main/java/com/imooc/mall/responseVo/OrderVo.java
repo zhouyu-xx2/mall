@@ -33,5 +33,5 @@ public class OrderVo {
 
     private Integer shippingId;
 
-    private List<Shipping> shippingVo;
+    private Shipping shippingVo;
 }

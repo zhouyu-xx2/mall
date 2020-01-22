@@ -6,12 +6,15 @@ import com.imooc.mall.dao.ProductMapper;
 import com.imooc.mall.dao.ShippingMapper;
 import com.imooc.mall.enums.ProductEnum;
 import com.imooc.mall.pojo.*;
+import com.imooc.mall.responseVo.OrderItemVo;
 import com.imooc.mall.responseVo.OrderVo;
 import com.imooc.mall.responseVo.ResponseVo;
 import com.imooc.mall.service.ICartService;
 import com.imooc.mall.service.IOrderService;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
@@ -40,6 +43,7 @@ public class OrderServiceImpl implements IOrderService {
     private ICartService cartService;
 
     @Override
+    @Transactional
     public ResponseVo<OrderVo> create(Integer uid, Integer shipingId) {
         //创建一个订单
         //查出来收货地址
@@ -86,6 +90,13 @@ public class OrderServiceImpl implements IOrderService {
 
             OrderItem orderItem = buildOrderItem(uid, orderNO, cart.getQuantity(), product);
             orderItemList.add(orderItem);
+
+            //减库存
+            product.setStock(product.getStock() - cart.getQuantity());
+            int selective = productMapper.updateByPrimaryKeySelective(product);
+            if (selective <= 0) {
+                return ResponseVo.error(ERROR);
+            }
         }
         //生成订单 与数据库交互 order 与 orderItem 同时写入
         Order order = buildOrder(uid, orderNO, shipingId, orderItemList);
@@ -95,17 +106,31 @@ public class OrderServiceImpl implements IOrderService {
             return ResponseVo.error(ERROR);
         }
         //写入orderItem表
+
         int bathInsert = orderItemMapper.bathInsert(orderItemList);
         if (bathInsert <= 0) {
             return ResponseVo.error(ERROR);
         }
         //计算总价 只计算被选中的商品
-        //减库存
+
         //更新购物车
         //构造返回体 orderVo
+        OrderVo orderVo = buildOrderVo(order, orderItemList, shipping);
+        return ResponseVo.success(orderVo);
+    }
 
-
-        return null;
+    private OrderVo buildOrderVo(Order order, List<OrderItem> orderItemList, Shipping shipping) {
+        OrderVo orderVo = new OrderVo();
+        BeanUtils.copyProperties(order, orderVo);
+        List<OrderItemVo> orderItemVoList = orderItemList.stream().map(orderItem -> {
+            OrderItemVo orderItemVo = new OrderItemVo();
+            BeanUtils.copyProperties(orderItem, orderItemVo);
+            return orderItemVo;
+        }).collect(Collectors.toList());
+        orderVo.setOrderItemVoList(orderItemVoList);
+        orderVo.setShippingId(shipping.getId());
+        orderVo.setShippingVo(shipping);
+        return orderVo;
     }
 
     private Order buildOrder(Integer uid, Long orderNO, Integer shippingId,
