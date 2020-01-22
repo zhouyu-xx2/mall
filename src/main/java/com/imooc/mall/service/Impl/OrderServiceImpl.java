@@ -1,11 +1,11 @@
 package com.imooc.mall.service.Impl;
 
+import com.imooc.mall.dao.OrderItemMapper;
 import com.imooc.mall.dao.OrderMapper;
 import com.imooc.mall.dao.ProductMapper;
 import com.imooc.mall.dao.ShippingMapper;
-import com.imooc.mall.pojo.Cart;
-import com.imooc.mall.pojo.Product;
-import com.imooc.mall.pojo.Shipping;
+import com.imooc.mall.enums.ProductEnum;
+import com.imooc.mall.pojo.*;
 import com.imooc.mall.responseVo.OrderVo;
 import com.imooc.mall.responseVo.ResponseVo;
 import com.imooc.mall.service.ICartService;
@@ -14,17 +14,21 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.math.BigDecimal;
+import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.imooc.mall.enums.OrderStatusEnum.NO_PAY;
+import static com.imooc.mall.enums.PaymentTypeEnum.PAY_ONLINE;
 import static com.imooc.mall.enums.ResponseEnum.*;
 
 @Service
 public class OrderServiceImpl implements IOrderService {
     @Autowired
     private OrderMapper orderMapper;
+
+    @Autowired
+    private OrderItemMapper orderItemMapper;
 
     @Autowired
     private ProductMapper productMapper;
@@ -57,6 +61,10 @@ public class OrderServiceImpl implements IOrderService {
         Map<Integer, Product> map = productList
                 .stream()
                 .collect(Collectors.toMap(Product::getId, product -> product));
+
+        List<OrderItem> orderItemList = new ArrayList<>();
+        //订单号
+        Long orderNO = generateOrderNo();
         //这个商品是否存在
         for (Cart cart : cartList) {
             Product product = map.get(cart.getProductId());
@@ -65,15 +73,76 @@ public class OrderServiceImpl implements IOrderService {
                 return ResponseVo.error(PRODUCT_NO_EXIST,
                         "商品不存在，productID = " + cart.getProductId());
             }
+            //判断商品上下架状态
+            if (!ProductEnum.ON_SALE.getCode().equals(product.getStatus())) {
+                return ResponseVo.error(OFF_SALE_OR_DELETE,
+                        "商品下架或者删除 " + product.getName());
+            }
             //判断这个商品的库存是否充足
             if (product.getStock() < cart.getQuantity()) {
                 return ResponseVo.error(PRODUCT_STOCK_ERROR,
                         "库存不足!" + product.getName());
             }
-            //判断商品上下架状态
+
+            OrderItem orderItem = buildOrderItem(uid, orderNO, cart.getQuantity(), product);
+            orderItemList.add(orderItem);
         }
+        //生成订单 与数据库交互 order 与 orderItem 同时写入
+        Order order = buildOrder(uid, orderNO, shipingId, orderItemList);
+        //写入order表
+        int selective = orderMapper.insertSelective(order);
+        if (selective <= 0) {
+            return ResponseVo.error(ERROR);
+        }
+        //写入orderItem表
+        int bathInsert = orderItemMapper.bathInsert(orderItemList);
+        if (bathInsert <= 0) {
+            return ResponseVo.error(ERROR);
+        }
+        //计算总价 只计算被选中的商品
+        //减库存
+        //更新购物车
+        //构造返回体 orderVo
 
 
         return null;
+    }
+
+    private Order buildOrder(Integer uid, Long orderNO, Integer shippingId,
+                             List<OrderItem> orderItemList) {
+        Order order = new Order();
+        order.setOrderNo(orderNO);
+        order.setUserId(uid);
+        order.setShippingId(shippingId);
+        //支付金额
+        BigDecimal payment = orderItemList.stream().map(OrderItem::getTotalPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        order.setPayment(payment);
+        //支付方式 在线支付或者 货到付款
+        order.setPaymentType(PAY_ONLINE.getCode());
+        //运费
+        order.setPostage(0);
+        //订单状态
+        order.setStatus(NO_PAY.getCode());
+        return order;
+    }
+
+    //生成一个唯一的订单号
+    private Long generateOrderNo() {
+        return System.currentTimeMillis() + new Random().nextInt(999);
+    }
+
+    private OrderItem buildOrderItem(Integer uid, Long orderNo, Integer quantity, Product product) {
+        OrderItem item = new OrderItem();
+        item.setUserId(uid);
+        item.setOrderNo(orderNo);
+        item.setProductId(product.getId());
+        item.setProductName(product.getName());
+        item.setProductImage(product.getMainImage());
+        item.setCurrentUnitPrice(product.getPrice());
+        item.setQuantity(quantity);
+        item.setTotalPrice(product.getPrice().multiply(BigDecimal.valueOf(quantity)));
+        return item;
+
     }
 }
