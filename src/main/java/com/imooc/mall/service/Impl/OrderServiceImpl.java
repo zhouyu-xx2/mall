@@ -23,6 +23,7 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.imooc.mall.enums.OrderStatusEnum.CANCELED;
 import static com.imooc.mall.enums.OrderStatusEnum.NO_PAY;
 import static com.imooc.mall.enums.PaymentTypeEnum.PAY_ONLINE;
 import static com.imooc.mall.enums.ResponseEnum.*;
@@ -116,6 +117,7 @@ public class OrderServiceImpl implements IOrderService {
         //计算总价 只计算被选中的商品
 
         //更新购物车
+        //
         //构造返回体 orderVo
         OrderVo orderVo = buildOrderVo(order, orderItemList, shipping);
         return ResponseVo.success(orderVo);
@@ -167,6 +169,24 @@ public class OrderServiceImpl implements IOrderService {
         Shipping shipping = shippingMapper.selectByPrimaryKey(order.getShippingId());
         OrderVo orderVo = buildOrderVo(order, orderItemList, shipping);
         return ResponseVo.success(orderVo);
+    }
+
+    @Override
+    public ResponseVo cancel(Integer uid, Long orderNo) {
+        Order order = orderMapper.selectByOrderNo(orderNo);
+        if (order == null || !order.getUserId().equals(uid)) {
+            return ResponseVo.error(ORDER_NOT_EXIST);
+        }
+        if (!order.getStatus().equals(NO_PAY.getCode())) {
+            return ResponseVo.error(ORDER_PAID);
+        }
+        order.setStatus(CANCELED.getCode());
+        order.setCloseTime(new Date());
+        int selective = orderMapper.updateByPrimaryKeySelective(order);
+        if (selective <= 0) {
+            return ResponseVo.error(ERROR);
+        }
+        return ResponseVo.success();
     }
 
     private OrderVo buildOrderVo(Order order, List<OrderItem> orderItemList, Shipping shipping) {

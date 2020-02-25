@@ -149,6 +149,6 @@
         select
         <include refid="Base_Column_List"/>
         from mall_category
-        where stauts = 1
+        where status = 1
     </select>
 </mapper>

@@ -47,4 +47,11 @@ public class OrderServiceImplTest extends MallApplicationTests {
         log.info("detail = {}", gson.toJson(detail));
         Assert.assertEquals(ResponseEnum.SUCCESS.getCode(), detail.getStatus());
     }
+
+    @Test
+    public void cancel() {
+        ResponseVo cancel = orderService.cancel(5, created().getData().getOrderNo());
+        log.info("cancel = {}", gson.toJson(cancel));
+        Assert.assertEquals(ResponseEnum.SUCCESS.getCode(), cancel.getStatus());
+    }
 }

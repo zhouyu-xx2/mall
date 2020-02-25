@@ -11,7 +11,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-public class ProductController {
+public class
+
+ProductController {
     @Autowired
     private IProductService iProductService;
 

@@ -38,7 +38,9 @@ public enum ResponseEnum {
 
     CART_SELECTED_IS_EMOTY(20, "没有该商品"),
 
-    ORDER_NOT_EXIST(21, "订单不存在");
+    ORDER_NOT_EXIST(21, "订单不存在"),
+
+    ORDER_PAID(22, "此订单已付款，无法被取消");
 
     Integer code;
 
